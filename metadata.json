@@ -1,0 +1,6 @@
+{
+  "name": "SYNTHETIX | AI Creative Production Network",
+  "description": "AI-native creative marketplace connecting brands and agencies with verified generative filmmakers, animators, and AI artists with provenance-verified workflows.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

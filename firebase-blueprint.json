@@ -1,0 +1,211 @@
+{
+  "entities": {
+    "UserProfilePublic": {
+      "title": "UserProfilePublic",
+      "description": "Public profile information for creators and brands.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "role": {
+          "type": "string",
+          "enum": ["creator", "brand"]
+        },
+        "organizationOrHandle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "primarySpecialtyOrIndustry": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "avatar": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "rememberMe": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "name",
+        "role",
+        "organizationOrHandle",
+        "primarySpecialtyOrIndustry",
+        "avatar",
+        "rememberMe",
+        "createdAt"
+      ]
+    },
+    "UserProfilePrivate": {
+      "title": "UserProfilePrivate",
+      "description": "Private PII (email) strictly restricted to the owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 150
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Direct message between a brand and a content creator.",
+      "type": "object",
+      "properties": {
+        "senderUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "senderRole": {
+          "type": "string",
+          "enum": ["creator", "brand"]
+        },
+        "recipientCreatorId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "recipientCreatorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "senderUid",
+        "senderName",
+        "senderRole",
+        "recipientCreatorId",
+        "recipientCreatorName",
+        "text",
+        "createdAt"
+      ]
+    },
+    "BrandInvitation": {
+      "title": "BrandInvitation",
+      "description": "Invitation sent by a brand to hire a content creator, supporting accept and deal lock.",
+      "type": "object",
+      "properties": {
+        "senderUid": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "brandName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "creatorId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "creatorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "projectTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        },
+        "briefDescription": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "proposedBudget": {
+          "type": "number"
+        },
+        "deliverables": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Accepted", "Deal Locked"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "senderUid",
+        "brandName",
+        "creatorId",
+        "creatorName",
+        "projectTitle",
+        "briefDescription",
+        "proposedBudget",
+        "deliverables",
+        "status",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfilePublic" },
+      "description": "Public profile record for creators and brands."
+    },
+    "/users/{userId}/private/{docId}": {
+      "schema": { "$ref": "#/entities/UserProfilePrivate" },
+      "description": "Private owner-only PII subcollection."
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Direct messages between brands and creators."
+    },
+    "/invitations/{invitationId}": {
+      "schema": { "$ref": "#/entities/BrandInvitation" },
+      "description": "Brand hiring invitations and deals with creators."
+    }
+  }
+}

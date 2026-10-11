@@ -1,0 +1,210 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfilePublic(data) {
+      return data.keys().hasAll([
+        'uid',
+        'name',
+        'role',
+        'organizationOrHandle',
+        'primarySpecialtyOrIndustry',
+        'avatar',
+        'rememberMe',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'uid',
+        'name',
+        'role',
+        'organizationOrHandle',
+        'primarySpecialtyOrIndustry',
+        'avatar',
+        'rememberMe',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.uid == request.auth.uid &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+      data.role is string && (data.role == 'creator' || data.role == 'brand') &&
+      data.organizationOrHandle is string && data.organizationOrHandle.size() >= 1 && data.organizationOrHandle.size() <= 100 &&
+      data.primarySpecialtyOrIndustry is string && data.primarySpecialtyOrIndustry.size() >= 1 && data.primarySpecialtyOrIndustry.size() <= 120 &&
+      data.avatar is string && data.avatar.size() <= 500 &&
+      data.rememberMe is bool &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidUserProfilePrivate(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+      data.keys().hasOnly(['uid', 'email', 'createdAt']) &&
+      data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.uid == request.auth.uid &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 150 &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll([
+        'senderUid',
+        'senderName',
+        'senderRole',
+        'recipientCreatorId',
+        'recipientCreatorName',
+        'text',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'senderUid',
+        'senderName',
+        'senderRole',
+        'recipientCreatorId',
+        'recipientCreatorName',
+        'text',
+        'createdAt'
+      ]) &&
+      data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 && data.senderUid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.senderUid == request.auth.uid &&
+      data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 100 &&
+      data.senderRole is string && (data.senderRole == 'creator' || data.senderRole == 'brand') &&
+      data.recipientCreatorId is string && data.recipientCreatorId.size() >= 1 && data.recipientCreatorId.size() <= 128 && data.recipientCreatorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.recipientCreatorName is string && data.recipientCreatorName.size() >= 1 && data.recipientCreatorName.size() <= 100 &&
+      data.text is string && data.text.size() >= 1 && data.text.size() <= 1000 &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidBrandInvitation(data) {
+      return data.keys().hasAll([
+        'senderUid',
+        'brandName',
+        'creatorId',
+        'creatorName',
+        'projectTitle',
+        'briefDescription',
+        'proposedBudget',
+        'deliverables',
+        'status',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'senderUid',
+        'brandName',
+        'creatorId',
+        'creatorName',
+        'projectTitle',
+        'briefDescription',
+        'proposedBudget',
+        'deliverables',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ]) &&
+      data.senderUid is string && data.senderUid.size() >= 1 && data.senderUid.size() <= 128 && data.senderUid.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.senderUid == request.auth.uid &&
+      data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 100 &&
+      data.creatorId is string && data.creatorId.size() >= 1 && data.creatorId.size() <= 128 && data.creatorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.creatorName is string && data.creatorName.size() >= 1 && data.creatorName.size() <= 100 &&
+      data.projectTitle is string && data.projectTitle.size() >= 1 && data.projectTitle.size() <= 140 &&
+      data.briefDescription is string && data.briefDescription.size() >= 1 && data.briefDescription.size() <= 1000 &&
+      data.proposedBudget is number && data.proposedBudget >= 100 && data.proposedBudget <= 10000000 &&
+      data.deliverables is string && data.deliverables.size() >= 1 && data.deliverables.size() <= 300 &&
+      data.status is string && (data.status == 'Pending' || data.status == 'Accepted' || data.status == 'Deal Locked') &&
+      data.createdAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isSignedIn() && existing().uid == request.auth.uid;
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfilePublic(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUserProfilePublic(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().role == existing().role &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'name',
+          'organizationOrHandle',
+          'primarySpecialtyOrIndustry',
+          'avatar',
+          'rememberMe',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+
+      match /private/{docId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(docId);
+        allow list: if false;
+        allow create: if isOwner(userId) &&
+          isValidId(userId) &&
+          isValidId(docId) &&
+          docId == 'info' &&
+          isValidUserProfilePrivate(incoming()) &&
+          incoming().createdAt == request.time &&
+          existsAfter(/databases/$(database)/documents/users/$(userId));
+        allow update, delete: if false;
+      }
+    }
+
+    match /messages/{messageId} {
+      allow get: if isSignedIn() && isValidId(messageId) && existing().senderUid == request.auth.uid;
+      allow list: if isSignedIn() && existing().senderUid == request.auth.uid;
+      allow create: if isSignedIn() &&
+        isValidId(messageId) &&
+        isValidChatMessage(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    match /invitations/{invitationId} {
+      allow get: if isSignedIn() && isValidId(invitationId) && existing().senderUid == request.auth.uid;
+      allow list: if isSignedIn() && existing().senderUid == request.auth.uid;
+      allow create: if isSignedIn() &&
+        isValidId(invitationId) &&
+        isValidBrandInvitation(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if isSignedIn() &&
+        isValidId(invitationId) &&
+        isValidBrandInvitation(incoming()) &&
+        existing().status != 'Deal Locked' &&
+        incoming().senderUid == existing().senderUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'status',
+          'proposedBudget',
+          'deliverables',
+          'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+  }
+}
